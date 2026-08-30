@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>入室耐久ツール（同期のみ）</title>
+<title>入室耐久ツール</title>
 <style>
   * { box-sizing: border-box; }
 
@@ -187,7 +187,7 @@
     top: 0; left: 0;
     width: 100%; height: 100%;
     background: rgba(0,0,0,0.45);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 150;
@@ -231,7 +231,7 @@
 
 <button id="modeToggle">🌙 ダーク</button>
 
-<h1>入室耐久ツール（同期のみ）</h1>
+<h1>入室耐久ツール</h1>
 
 <div id="popupOverlay">
   <div id="popup">
@@ -275,13 +275,26 @@
 
   let items = [];
 
-  window.onload = () => {
-    document.getElementById("popupOverlay").style.display = "flex";
+  /* 🔥 目標人数が未設定のときだけポップアップを表示 */
+  window.onload = async () => {
+    const goalSnap = await get(ref(db, "goal"));
+    const goal = goalSnap.val();
+
+    if (goal === null || goal === undefined) {
+      document.getElementById("popupOverlay").style.display = "flex";
+    } else {
+      document.getElementById("goal").textContent = goal;
+    }
   };
 
   window.setGoal = function () {
-    let goal = document.getElementById("goalInput").value;
+    let goal = document.getElementById("goalInput").value.trim();
+    if (!goal) {
+      alert("目標人数を入力してください");
+      return;
+    }
     set(ref(db, "goal"), goal);
+    document.getElementById("goal").textContent = goal;
     document.getElementById("popupOverlay").style.display = "none";
   };
 
