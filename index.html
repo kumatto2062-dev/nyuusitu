@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>入室耐久ツール（同期のみ）</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #333;
+    --accent: #3A7AFE;
+    --danger: #FF4D4D;
+    --success: #4CAF50;
+    --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  .dark {
+    --bg: #1e1e1e;
+    --card: #2b2b2b;
+    --text: #f5f5f5;
+    --accent: #4D8BFF;
+    --danger: #FF6B6B;
+    --success: #6EDC6E;
+    --shadow: 0 4px 12px rgba(255,255,255,0.08);
+  }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    max-width: 900px;
+    margin: auto;
+    padding: 25px;
+    background: var(--bg);
+    color: var(--text);
+    transition: 0.3s;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 32px;
+    font-weight: 700;
+  }
+
+  #modeToggle {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 200;
+    box-shadow: var(--shadow);
+  }
+
+  #totalBox,
+  .item,
+  #inputCard {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    width: 100%;
+  }
+
+  #totalBox {
+    padding: 30px;
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+    margin-bottom: 30px;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    font-size: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .item {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+
+  .icon-btn {
+    width: 55px;
+    height: 55px;
+    border-radius: 16px;
+    border: none;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+  }
+
+  .minus { background: var(--danger); color: white; }
+  .plus { background: var(--success); color: white; }
+
+  .item-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 22px;
+    text-align: center;
+  }
+
+  .item-step-input input {
+    width: 100%;
+    font-size: 20px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    text-align: center;
+  }
+
+  .delete {
+    background: #b0b0b0;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 14px;
+    border: none;
+    font-size: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .order-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .order-btn {
+    background: var(--accent);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 18px;
+    border: none;
+    box-shadow: var(--shadow);
+  }
+
+  #inputCard label {
+    font-size: 20px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  #inputCard input {
+    width: 100%;
+    font-size: 22px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  #addBtn {
+    background: var(--accent);
+    color: white;
+    width: 100%;
+    padding: 18px;
+    font-size: 24px;
+    border-radius: 16px;
+    margin-top: 10px;
+    border: none;
+    box-shadow: var(--shadow);
+  }
+
+  #popupOverlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 150;
+  }
+
+  #popup {
+    background: var(--card);
+    padding: 30px;
+    border-radius: 22px;
+    width: calc(100% - 40px);
+    max-width: 340px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+
+  #popup input {
+    width: 100%;
+    font-size: 22px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  #popup button {
+    background: var(--accent);
+    color: white;
+    padding: 14px 20px;
+    font-size: 22px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: var(--shadow);
+  }
+</style>
+</head>
+<body>
+
+<button id="modeToggle">🌙 ダーク</button>
+
+<h1>入室耐久ツール（同期のみ）</h1>
+
+<div id="popupOverlay">
+  <div id="popup">
+    <h2>目標人数を入力</h2>
+    <input id="goalInput" type="number" placeholder="例：100">
+    <button onclick="setGoal()">決定</button>
+  </div>
+</div>
+
+<div id="totalBox">
+  合計人数：<span id="total">0</span> / <span id="goal">0</span>
+</div>
+
+<div id="items"></div>
+
+<div id="inputCard">
+  <label>新しい項目を追加</label>
+  <input id="newItemName" placeholder="項目名（例：受付A）">
+  <input id="newItemStep" type="number" placeholder="増減人数（例：3）">
+</div>
+
+<button id="addBtn">追加する</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCY6r1ZzM9fz9k0QFROcLghAaBWPlxFXJs",
+    authDomain: "nyuusitu.firebaseapp.com",
+    projectId: "nyuusitu",
+    storageBucket: "nyuusitu.firebasestorage.app",
+    messagingSenderId: "52996193895",
+    appId: "1:52996193895:web:637df16d38513bd77b9ec2",
+    measurementId: "G-JGLQ6MGVMD",
+    databaseURL: "https://nyuusitu-default-rtdb.firebaseio.com/"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let items = [];
+
+  window.onload = () => {
+    document.getElementById("popupOverlay").style.display = "flex";
+  };
+
+  window.setGoal = function () {
+    let goal = document.getElementById("goalInput").value;
+    set(ref(db, "goal"), goal);
+    document.getElementById("popupOverlay").style.display = "none";
+  };
+
+  function render() {
+    const container = document.getElementById("items");
+    container.innerHTML = "";
+
+    const total = items.reduce((sum, item) => sum + item.count, 0);
+    document.getElementById("total").textContent = total;
+
+    items.forEach((item, index) => {
+      const div = document.createElement("div");
+      div.className = "item";
+
+      div.innerHTML = `
+        <button class="icon-btn minus" onclick="change(${index}, -${item.step})">−</button>
+        <div class="item-name">${item.name}</div>
+        <div class="item-step-input">
+          <input type="number" value="${item.step}" onchange="updateStep(${index}, this.value)">
+        </div>
+        <button class="icon-btn plus" onclick="change(${index}, ${item.step})">＋</button>
+        <button class="delete" onclick="deleteItem(${index})">削除</button>
+        <div class="order-buttons">
+          <button class="order-btn" onclick="moveUp(${index})">↑</button>
+          <button class="order-btn" onclick="moveDown(${index})">↓</button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    });
+  }
+
+  function sync() {
+    set(ref(db, "items"), items);
+  }
+
+  window.change = (index, diff) => {
+    items[index].count += diff;
+    sync();
+  };
+
+  window.updateStep = (index, newStep) => {
+    items[index].step = Number(newStep);
+    sync();
+  };
+
+  window.deleteItem = (index) => {
+    items.splice(index, 1);
+    sync();
+  };
+
+  window.moveUp = (index) => {
+    if (index === 0) return;
+    [items[index - 1], items[index]] = [items[index], items[index - 1]];
+    sync();
+  };
+
+  window.moveDown = (index) => {
+    if (index === items.length - 1) return;
+    [items[index + 1], items[index]] = [items[index], items[index + 1]];
+    sync();
+  };
+
+  document.getElementById("addBtn").onclick = () => {
+    const name = document.getElementById("newItemName").value.trim();
+    const step = Number(document.getElementById("newItemStep").value);
+
+    if (!name || !step) {
+      alert("項目名と人数を入力してください");
+      return;
+    }
+
+    items.push({ name, step, count: 0 });
+    sync();
+
+    document.getElementById("newItemName").value = "";
+    document.getElementById("newItemStep").value = "";
+  };
+
+  onValue(ref(db, "goal"), (snapshot) => {
+    const goal = snapshot.val();
+    if (goal !== null) {
+      document.getElementById("goal").textContent = goal;
+    }
+  });
+
+  onValue(ref(db, "items"), (snapshot) => {
+    const data = snapshot.val();
+    items = data || [];
+    render();
+  });
+</script>
+
+</body>
+</html>
