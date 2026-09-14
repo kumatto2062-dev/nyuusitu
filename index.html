@@ -34,7 +34,7 @@ textarea{height:140px;resize:vertical}
 #popup{background:#fff;padding:26px;border-radius:22px;width:100%;max-width:480px;box-shadow:var(--shadow);text-align:center;max-height:90vh;overflow:auto}
 #popup button{background:var(--accent);color:#fff;padding:13px 18px;font-size:20px;border-radius:14px;border:none;cursor:pointer;width:100%;margin-top:10px}
 #popup .secondary{background:#777}
-.output-box{white-space:pre-wrap;text-align:left;background:#f5f6f8;padding:16px;border-radius:12px;font-size:18px;line-height:1.7}
+.output-box{white-space:pre-wrap;overflow-wrap:anywhere;text-align:left;background:#f5f6f8;padding:16px;border-radius:12px;font-size:18px;line-height:1.7}
 @media(max-width:600px){
   body{padding:12px}h1{font-size:25px}
   .item{gap:6px;padding:10px}.icon-btn{width:48px;height:48px;font-size:25px}
@@ -300,16 +300,15 @@ $("showTeikiBtn").addEventListener("click",()=>{
   }
 
   const total=totalCount();
-  const output=teikiText
+
+  // 定期出力は「定期文章＋現在人数」だけを出力する。
+  // PC/スマホで "\\n" が文字として表示される場合にも備えて、
+  // 改行コードを実際の改行へ変換する。
+  const fullOutput=teikiText
     .replace(/○○○/g,String(total))
     .replace(/△△△/g,String(goal))
-    .replace(/□□□/g,`${total}/${goal}`);
-
-  const detail=items.length
-    ? "\n\n【項目別】\n"+items.map(i=>`${i.name}：${i.count}人`).join("\n")
-    : "";
-
-  const fullOutput=output+detail;
+    .replace(/□□□/g,`${total}/${goal}`)
+    .replace(/\\\\n/g,"\\n");
 
   openPopup(`
     <h2>現在状況</h2>
