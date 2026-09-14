@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>入室耐久ツール（同期のみ）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
   * { box-sizing: border-box; }
 
@@ -16,46 +18,20 @@
     --shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
 
-  .dark {
-    --bg: #1e1e1e;
-    --card: #2b2b2b;
-    --text: #f5f5f5;
-    --accent: #4D8BFF;
-    --danger: #FF6B6B;
-    --success: #6EDC6E;
-    --shadow: 0 4px 12px rgba(255,255,255,0.08);
-  }
-
   body {
     font-family: 'Segoe UI', sans-serif;
     max-width: 900px;
     margin: auto;
-    padding: 25px;
+    padding: 20px;
     background: var(--bg);
     color: var(--text);
-    transition: 0.3s;
   }
 
   h1 {
     text-align: center;
-    margin-bottom: 25px;
-    font-size: 32px;
+    margin-bottom: 20px;
+    font-size: 30px;
     font-weight: 700;
-  }
-
-  #modeToggle {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 12px;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 200;
-    box-shadow: var(--shadow);
   }
 
   #totalBox,
@@ -64,25 +40,23 @@
   #teikiCard {
     background: var(--card);
     border-radius: 20px;
-    padding: 22px;
+    padding: 20px;
     margin-bottom: 20px;
     box-shadow: var(--shadow);
     width: 100%;
   }
 
   #totalBox {
-    padding: 30px;
     text-align: center;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: bold;
-    margin-bottom: 30px;
   }
 
   .item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 14px;
     font-size: 20px;
   }
 
@@ -90,15 +64,16 @@
     .item {
       flex-direction: column;
       text-align: center;
+      font-size: 22px;
     }
   }
 
   .icon-btn {
-    width: 55px;
-    height: 55px;
+    width: 65px;
+    height: 65px;
     border-radius: 16px;
     border: none;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -113,13 +88,13 @@
   .item-name {
     flex: 1;
     font-weight: 600;
-    font-size: 22px;
+    font-size: 24px;
     text-align: center;
   }
 
   .item-step-input input {
     width: 100%;
-    font-size: 20px;
+    font-size: 22px;
     padding: 12px;
     border-radius: 14px;
     border: 1px solid #ccc;
@@ -130,10 +105,10 @@
   .delete {
     background: #b0b0b0;
     color: white;
-    padding: 10px 18px;
+    padding: 12px 20px;
     border-radius: 14px;
     border: none;
-    font-size: 18px;
+    font-size: 20px;
     box-shadow: var(--shadow);
   }
 
@@ -146,16 +121,16 @@
   .order-btn {
     background: var(--accent);
     color: white;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border-radius: 12px;
-    font-size: 18px;
+    font-size: 20px;
     border: none;
     box-shadow: var(--shadow);
   }
 
   #inputCard label,
   #teikiCard label {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 600;
     display: block;
     margin-bottom: 12px;
@@ -174,25 +149,21 @@
 
   #teikiCard textarea {
     width: 100%;
-    height: 120px;
-    font-size: 18px;
-    padding: 12px;
+    height: 140px;
+    font-size: 20px;
+    padding: 14px;
     border-radius: 14px;
     border: 1px solid #ccc;
     background: #f9f9f9;
     margin-bottom: 12px;
   }
 
-  #addBtn,
-  #saveTeikiBtn,
-  #showTeikiBtn,
-  #setGoalBtn,
-  #shareBtn {
+  button.main-btn {
     background: var(--accent);
     color: white;
     width: 100%;
-    padding: 18px;
-    font-size: 24px;
+    padding: 20px;
+    font-size: 26px;
     border-radius: 16px;
     margin-top: 10px;
     border: none;
@@ -215,7 +186,7 @@
     padding: 30px;
     border-radius: 22px;
     width: calc(100% - 40px);
-    max-width: 340px;
+    max-width: 360px;
     box-shadow: var(--shadow);
     text-align: center;
   }
@@ -246,8 +217,6 @@
 </head>
 <body>
 
-<button id="modeToggle">🌙 ダーク</button>
-
 <h1>入室耐久ツール（同期のみ）</h1>
 
 <!-- ▼ 目標人数設定ポップアップ -->
@@ -263,7 +232,7 @@
   合計人数：<span id="total">0</span> / <span id="goal">0</span>
 </div>
 
-<button id="setGoalBtn">目標人数を設定する</button>
+<button id="setGoalBtn" class="main-btn">目標人数を設定する</button>
 
 <div id="items"></div>
 
@@ -273,16 +242,16 @@
   <input id="newItemStep" type="number" placeholder="増減人数（例：3）">
 </div>
 
-<button id="addBtn">追加する</button>
+<button id="addBtn" class="main-btn">追加する</button>
 
 <!-- ▼ 定期文章入力欄 -->
 <div id="teikiCard">
   <label>定期文章（○○○ の部分に人数が入ります）</label>
   <textarea id="teikiText" placeholder="例：現在○○○人です！目標まで頑張ります！"></textarea>
 
-  <button id="saveTeikiBtn">定期入力</button>
-  <button id="showTeikiBtn">定期出力</button>
-  <button id="shareBtn">共有URLを作成</button>
+  <button id="saveTeikiBtn" class="main-btn">定期入力</button>
+  <button id="showTeikiBtn" class="main-btn">定期出力</button>
+  <button id="shareBtn" class="main-btn">共有URLを作成</button>
 </div>
 
 <script type="module">
@@ -303,9 +272,15 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+  /* ▼ 入室ID（roomId）取得 */
+  const params = new URLSearchParams(location.search);
+  const roomId = params.get("room") || "default";
+
+  /* ▼ Firebaseパスを roomId ごとに分離 */
+  const path = (key) => `${roomId}/${key}`;
+
   let items = [];
   let teikiText = "";
-  let goalValue = 0;
 
   /* ▼ 目標人数設定ボタン */
   document.getElementById("setGoalBtn").onclick = () => {
@@ -314,7 +289,7 @@
 
   window.setGoal = function () {
     let goal = document.getElementById("goalInput").value;
-    set(ref(db, "goal"), goal);
+    set(ref(db, path("goal")), goal);
     document.getElementById("popupOverlay").style.display = "none";
   };
 
@@ -348,7 +323,7 @@
   }
 
   function sync() {
-    set(ref(db, "items"), items);
+    set(ref(db, path("items")), items);
   }
 
   window.change = (index, diff) => {
@@ -401,12 +376,12 @@
       alert("定期文章を入力してください");
       return;
     }
-    set(ref(db, "teiki"), text);
+    set(ref(db, path("teiki")), text);
     alert("定期文章を保存しました");
   };
 
   /* ▼ 定期文章読み込み */
-  onValue(ref(db, "teiki"), (snapshot) => {
+  onValue(ref(db, path("teiki")), (snapshot) => {
     const data = snapshot.val();
     teikiText = data || "";
     document.getElementById("teikiText").value = teikiText;
@@ -445,13 +420,17 @@
     document.getElementById("popupOverlay").style.display = "none";
   };
 
-  /* ▼ URL共有機能 */
+  /* ▼ URL共有機能（短縮版） */
   function encodeData(data) {
-    return btoa(encodeURIComponent(JSON.stringify(data)));
+    return btoa(encodeURIComponent(JSON.stringify(data)))
+      .replace(/=+$/, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
   }
 
   function decodeData(encoded) {
     try {
+      encoded = encoded.replace(/-/g, "+").replace(/_/g, "/");
       return JSON.parse(decodeURIComponent(atob(encoded)));
     } catch {
       return null;
@@ -459,17 +438,14 @@
   }
 
   document.getElementById("shareBtn").onclick = () => {
-    const total = items.reduce((sum, item) => sum + item.count, 0);
-    const goal = Number(document.getElementById("goal").textContent);
-
     const data = {
       items,
       teikiText,
-      goal
+      goal: Number(document.getElementById("goal").textContent)
     };
 
     const encoded = encodeData(data);
-    const url = `${location.origin}${location.pathname}?share=${encoded}`;
+    const url = `${location.origin}${location.pathname}?room=${roomId}&s=${encoded}`;
 
     navigator.clipboard.writeText(url).then(() => {
       alert("共有URLをコピーしました！\n\n" + url);
@@ -478,8 +454,7 @@
 
   /* ▼ URL共有読み込み */
   (function loadShared() {
-    const params = new URLSearchParams(location.search);
-    const encoded = params.get("share");
+    const encoded = params.get("s");
     if (!encoded) return;
 
     const shared = decodeData(encoded);
@@ -487,22 +462,22 @@
 
     items = shared.items || [];
     teikiText = shared.teikiText || "";
-    goalValue = shared.goal || 0;
+    const goalValue = shared.goal || 0;
 
-    set(ref(db, "items"), items);
-    set(ref(db, "teiki"), teikiText);
-    set(ref(db, "goal"), goalValue);
+    set(ref(db, path("items")), items);
+    set(ref(db, path("teiki")), teikiText);
+    set(ref(db, path("goal")), goalValue);
   })();
 
   /* ▼ Firebase同期 */
-  onValue(ref(db, "goal"), (snapshot) => {
+  onValue(ref(db, path("goal")), (snapshot) => {
     const goal = snapshot.val();
     if (goal !== null) {
       document.getElementById("goal").textContent = goal;
     }
   });
 
-  onValue(ref(db, "items"), (snapshot) => {
+  onValue(ref(db, path("items")), (snapshot) => {
     const data = snapshot.val();
     items = data || [];
     render();
