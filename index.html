@@ -18,7 +18,7 @@ h1{text-align:center;margin:0 0 20px;font-size:30px}
 .item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
 .icon-btn{width:58px;height:58px;border-radius:14px;border:none;font-size:30px;font-weight:bold;cursor:pointer;color:#fff;flex:none}
 .minus{background:var(--danger)}.plus{background:var(--success)}
-.item-name{flex:1;font-weight:600;font-size:22px;text-align:center;word-break:break-word}
+.item-name{flex:1;min-width:0;font-weight:600;font-size:22px;text-align:center;word-break:normal;overflow-wrap:break-word;line-height:1.35}
 .count{min-width:90px;text-align:center;font-size:24px;font-weight:bold}
 .item-step-input{width:100px}.item-step-input input,
 input,textarea{width:100%;font-size:20px;padding:12px;border-radius:14px;border:1px solid #ccc;background:#f9f9f9}
@@ -38,7 +38,7 @@ textarea{height:140px;resize:vertical}
 @media(max-width:600px){
   body{padding:12px}h1{font-size:25px}
   .item{gap:6px;padding:10px}.icon-btn{width:48px;height:48px;font-size:25px}
-  .item-name{font-size:18px}.count{min-width:55px;font-size:20px}
+  .item-name{font-size:16px;line-height:1.3;word-break:normal;overflow-wrap:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.count{min-width:55px;font-size:20px}
   .item-step-input{width:70px}.item-step-input input{font-size:17px;padding:9px}
   .delete{padding:9px 7px;font-size:14px}.order-btn{padding:6px 8px;font-size:16px}
 }
@@ -306,7 +306,7 @@ $("showTeikiBtn").addEventListener("click",()=>{
     .replace(/□□□/g,`${total}/${goal}`);
 
   const detail=items.length
-    ? "\\n\\n【項目別】\\n"+items.map(i=>`${i.name}：${i.count}人`).join("\\n")
+    ? "\n\n【項目別】\n"+items.map(i=>`${i.name}：${i.count}人`).join("\n")
     : "";
 
   const fullOutput=output+detail;
