@@ -185,7 +185,9 @@
 
   #addBtn,
   #saveTeikiBtn,
-  #showTeikiBtn {
+  #showTeikiBtn,
+  #setGoalBtn,
+  #shareBtn {
     background: var(--accent);
     color: white;
     width: 100%;
@@ -248,6 +250,7 @@
 
 <h1>入室耐久ツール（同期のみ）</h1>
 
+<!-- ▼ 目標人数設定ポップアップ -->
 <div id="popupOverlay">
   <div id="popup">
     <h2>目標人数を入力</h2>
@@ -259,6 +262,8 @@
 <div id="totalBox">
   合計人数：<span id="total">0</span> / <span id="goal">0</span>
 </div>
+
+<button id="setGoalBtn">目標人数を設定する</button>
 
 <div id="items"></div>
 
@@ -277,6 +282,7 @@
 
   <button id="saveTeikiBtn">定期入力</button>
   <button id="showTeikiBtn">定期出力</button>
+  <button id="shareBtn">共有URLを作成</button>
 </div>
 
 <script type="module">
@@ -299,8 +305,10 @@
 
   let items = [];
   let teikiText = "";
+  let goalValue = 0;
 
-  window.onload = () => {
+  /* ▼ 目標人数設定ボタン */
+  document.getElementById("setGoalBtn").onclick = () => {
     document.getElementById("popupOverlay").style.display = "flex";
   };
 
@@ -404,7 +412,7 @@
     document.getElementById("teikiText").value = teikiText;
   });
 
-  /* ▼ 定期文章出力 */
+  /* ▼ 定期文章出力（コピー機能付き） */
   document.getElementById("showTeikiBtn").onclick = () => {
     if (!teikiText) {
       alert("定期文章が保存されていません");
@@ -418,16 +426,73 @@
 
     document.getElementById("popup").innerHTML = `
       <h2>定期文章</h2>
-      <p style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
+      <p id="teikiOutput" style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
+      <button onclick="copyTeiki()">コピーする</button>
       <button onclick="closePopup()">閉じる</button>
     `;
 
     document.getElementById("popupOverlay").style.display = "flex";
   };
 
+  window.copyTeiki = function () {
+    const text = document.getElementById("teikiOutput").innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert("コピーしました！");
+    });
+  };
+
   window.closePopup = function () {
     document.getElementById("popupOverlay").style.display = "none";
   };
+
+  /* ▼ URL共有機能 */
+  function encodeData(data) {
+    return btoa(encodeURIComponent(JSON.stringify(data)));
+  }
+
+  function decodeData(encoded) {
+    try {
+      return JSON.parse(decodeURIComponent(atob(encoded)));
+    } catch {
+      return null;
+    }
+  }
+
+  document.getElementById("shareBtn").onclick = () => {
+    const total = items.reduce((sum, item) => sum + item.count, 0);
+    const goal = Number(document.getElementById("goal").textContent);
+
+    const data = {
+      items,
+      teikiText,
+      goal
+    };
+
+    const encoded = encodeData(data);
+    const url = `${location.origin}${location.pathname}?share=${encoded}`;
+
+    navigator.clipboard.writeText(url).then(() => {
+      alert("共有URLをコピーしました！\n\n" + url);
+    });
+  };
+
+  /* ▼ URL共有読み込み */
+  (function loadShared() {
+    const params = new URLSearchParams(location.search);
+    const encoded = params.get("share");
+    if (!encoded) return;
+
+    const shared = decodeData(encoded);
+    if (!shared) return;
+
+    items = shared.items || [];
+    teikiText = shared.teikiText || "";
+    goalValue = shared.goal || 0;
+
+    set(ref(db, "items"), items);
+    set(ref(db, "teiki"), teikiText);
+    set(ref(db, "goal"), goalValue);
+  })();
 
   /* ▼ Firebase同期 */
   onValue(ref(db, "goal"), (snapshot) => {
