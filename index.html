@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>入室耐久ツール（同期のみ）</title>
+<title>入室耐久計測ツール</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -60,12 +60,16 @@
     font-size: 20px;
   }
 
-  /* ▼ スマホでも横並びにする */
+  /* ▼ スマホでも横並びにする（名前が長くても崩れない） */
   @media (max-width: 600px) {
     .item {
       flex-direction: row;
-      text-align: center;
-      font-size: 22px;
+      font-size: 20px;
+    }
+    .item-name {
+      max-width: 120px;
+      word-break: break-word;
+      font-size: 20px;
     }
   }
 
@@ -91,6 +95,7 @@
     font-weight: 600;
     font-size: 24px;
     text-align: center;
+    word-break: break-word;
   }
 
   .item-step-input input {
@@ -219,7 +224,7 @@
 </head>
 <body>
 
-<h1>入室耐久ツール（同期のみ）</h1>
+<h1>入室耐久計測ツール</h1>
 
 <!-- ▼ 目標人数設定ポップアップ -->
 <div id="popupOverlay">
@@ -426,44 +431,36 @@
     });
   };
 
-  /* ▼ URL共有機能（短縮版） */
-  function encodeData(data) {
-    return btoa(encodeURIComponent(JSON.stringify(data)))
-      .replace(/=+$/, "")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
+  /* ▼ URL共有機能（短縮版：短いIDのみ） */
+  function randomId() {
+    return Math.random().toString(36).substring(2, 10);
   }
 
-  function decodeData(encoded) {
-    try {
-      encoded = encoded.replace(/-/g, "+").replace(/_/g, "/");
-      return JSON.parse(decodeURIComponent(atob(encoded)));
-    } catch {
-      return null;
-    }
-  }
+  document.getElementById("shareBtn").onclick = async () => {
+    const shareId = randomId();
 
-  document.getElementById("shareBtn").onclick = () => {
     const data = {
       items,
       teikiText,
       goal: Number(document.getElementById("goal").textContent)
     };
 
-    const encoded = encodeData(data);
-    const url = `${location.origin}${location.pathname}?room=${roomId}&s=${encoded}`;
+    await set(ref(db, `share/${shareId}`), data);
+
+    const url = `${location.origin}${location.pathname}?share=${shareId}`;
 
     navigator.clipboard.writeText(url).then(() => {
       alert("共有URLをコピーしました！\n\n" + url);
     });
   };
 
-  /* ▼ URL共有読み込み */
-  (function loadShared() {
-    const encoded = params.get("s");
-    if (!encoded) return;
+  /* ▼ 共有URL読み込み */
+  (async function loadShared() {
+    const shareId = params.get("share");
+    if (!shareId) return;
 
-    const shared = decodeData(encoded);
+    const snapshot = await get(ref(db, `share/${shareId}`));
+    const shared = snapshot.val();
     if (!shared) return;
 
     items = shared.items || [];
@@ -475,20 +472,4 @@
     set(ref(db, path("goal")), goalValue);
   })();
 
-  /* ▼ Firebase同期 */
-  onValue(ref(db, path("goal")), (snapshot) => {
-    const goal = snapshot.val();
-    if (goal !== null) {
-      document.getElementById("goal").textContent = goal;
-    }
-  });
-
-  onValue(ref(db, path("items")), (snapshot) => {
-    const data = snapshot.val();
-    items = data || [];
-    render();
-  });
-</script>
-
-</body>
-</html>
+  /*
