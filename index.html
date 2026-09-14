@@ -229,8 +229,8 @@
   <div id="popup">
     <h2>目標人数を入力</h2>
     <input id="goalInput" type="number" placeholder="例：100">
-    <button onclick="setGoal()">決定</button>
-    <button onclick="closePopup()">閉じる</button>
+    <button id="goalSetBtn">決定</button>
+    <button id="goalCloseBtn">閉じる</button>
   </div>
 </div>
 
@@ -259,10 +259,10 @@
   <button id="shareBtn" class="main-btn">共有URLを作成</button>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyCY6r1ZzM9fz9k0QFROcLghAaBWPlxFXJs",
     authDomain: "nyuusitu.firebaseapp.com",
@@ -274,8 +274,8 @@
     databaseURL: "https://nyuusitu-default-rtdb.firebaseio.com/"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
   const params = new URLSearchParams(location.search);
   const roomId = params.get("room") || "default";
@@ -284,25 +284,28 @@
   let items = [];
   let teikiText = "";
 
-  document.getElementById("setGoalBtn").onclick = () => {
-    document.getElementById("popupOverlay").style.display = "flex";
-    document.getElementById("popup").innerHTML = `
+  const popupOverlay = document.getElementById("popupOverlay");
+  const popup = document.getElementById("popup");
+
+  document.getElementById("setGoalBtn").addEventListener("click", () => {
+    popup.innerHTML = `
       <h2>目標人数を入力</h2>
       <input id="goalInput" type="number" placeholder="例：100">
-      <button onclick="setGoal()">決定</button>
-      <button onclick="closePopup()">閉じる</button>
+      <button id="goalSetBtn">決定</button>
+      <button id="goalCloseBtn">閉じる</button>
     `;
-  };
+    popupOverlay.style.display = "flex";
 
-  window.closePopup = function () {
-    document.getElementById("popupOverlay").style.display = "none";
-  };
+    document.getElementById("goalSetBtn").addEventListener("click", () => {
+      const goal = document.getElementById("goalInput").value;
+      db.ref(path("goal")).set(goal);
+      popupOverlay.style.display = "none";
+    });
 
-  window.setGoal = function () {
-    const goal = document.getElementById("goalInput").value;
-    set(ref(db, path("goal")), goal);
-    closePopup();
-  };
+    document.getElementById("goalCloseBtn").addEventListener("click", () => {
+      popupOverlay.style.display = "none";
+    });
+  });
 
   function render() {
     const container = document.getElementById("items");
@@ -316,55 +319,67 @@
       div.className = "item";
 
       div.innerHTML = `
-        <button class="icon-btn minus" onclick="change(${index}, -${item.step})">−</button>
+        <button class="icon-btn minus">−</button>
         <div class="item-name">${item.name}</div>
         <div class="item-step-input">
-          <input type="number" value="${item.step}" onchange="updateStep(${index}, this.value)">
+          <input type="number" value="${item.step}">
         </div>
-        <button class="icon-btn plus" onclick="change(${index}, ${item.step})">＋</button>
-        <button class="delete" onclick="deleteItem(${index})">削除</button>
+        <button class="icon-btn plus">＋</button>
+        <button class="delete">削除</button>
         <div class="order-buttons">
-          <button class="order-btn" onclick="moveUp(${index})">↑</button>
-          <button class="order-btn" onclick="moveDown(${index})">↓</button>
+          <button class="order-btn">↑</button>
+          <button class="order-btn">↓</button>
         </div>
       `;
+
+      const minusBtn = div.querySelector(".minus");
+      const plusBtn = div.querySelector(".plus");
+      const stepInput = div.querySelector(".item-step-input input");
+      const deleteBtn = div.querySelector(".delete");
+      const upBtn = div.querySelectorAll(".order-btn")[0];
+      const downBtn = div.querySelectorAll(".order-btn")[1];
+
+      minusBtn.addEventListener("click", () => {
+        items[index].count -= items[index].step;
+        sync();
+      });
+
+      plusBtn.addEventListener("click", () => {
+        items[index].count += items[index].step;
+        sync();
+      });
+
+      stepInput.addEventListener("change", (e) => {
+        items[index].step = Number(e.target.value);
+        sync();
+      });
+
+      deleteBtn.addEventListener("click", () => {
+        items.splice(index, 1);
+        sync();
+      });
+
+      upBtn.addEventListener("click", () => {
+        if (index === 0) return;
+        [items[index - 1], items[index]] = [items[index], items[index - 1]];
+        sync();
+      });
+
+      downBtn.addEventListener("click", () => {
+        if (index === items.length - 1) return;
+        [items[index + 1], items[index]] = [items[index], items[index + 1]];
+        sync();
+      });
 
       container.appendChild(div);
     });
   }
 
   function sync() {
-    set(ref(db, path("items")), items);
+    db.ref(path("items")).set(items);
   }
 
-  window.change = (index, diff) => {
-    items[index].count += diff;
-    sync();
-  };
-
-  window.updateStep = (index, newStep) => {
-    items[index].step = Number(newStep);
-    sync();
-  };
-
-  window.deleteItem = (index) => {
-    items.splice(index, 1);
-    sync();
-  };
-
-  window.moveUp = (index) => {
-    if (index === 0) return;
-    [items[index - 1], items[index]] = [items[index], items[index - 1]];
-    sync();
-  };
-
-  window.moveDown = (index) => {
-    if (index === items.length - 1) return;
-    [items[index + 1], items[index]] = [items[index], items[index + 1]];
-    sync();
-  };
-
-  document.getElementById("addBtn").onclick = () => {
+  document.getElementById("addBtn").addEventListener("click", () => {
     const name = document.getElementById("newItemName").value.trim();
     const step = Number(document.getElementById("newItemStep").value);
 
@@ -378,25 +393,25 @@
 
     document.getElementById("newItemName").value = "";
     document.getElementById("newItemStep").value = "";
-  };
+  });
 
-  document.getElementById("saveTeikiBtn").onclick = () => {
+  document.getElementById("saveTeikiBtn").addEventListener("click", () => {
     const text = document.getElementById("teikiText").value.trim();
     if (!text) {
       alert("定期文章を入力してください");
       return;
     }
-    set(ref(db, path("teiki")), text);
+    db.ref(path("teiki")).set(text);
     alert("定期文章を保存しました");
-  };
+  });
 
-  onValue(ref(db, path("teiki")), (snapshot) => {
+  db.ref(path("teiki")).on("value", (snapshot) => {
     const data = snapshot.val();
     teikiText = data || "";
     document.getElementById("teikiText").value = teikiText;
   });
 
-  document.getElementById("showTeikiBtn").onclick = () => {
+  document.getElementById("showTeikiBtn").addEventListener("click", () => {
     if (!teikiText) {
       alert("定期文章が保存されていません");
       return;
@@ -406,46 +421,50 @@
     const goal = Number(document.getElementById("goal").textContent);
     const output = teikiText.replace(/○○○/g, `${total}/${goal}`);
 
-    document.getElementById("popup").innerHTML = `
+    popup.innerHTML = `
       <h2>定期文章</h2>
       <p id="teikiOutput" style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
       <div style="display:flex; flex-direction:column; gap:12px;">
-        <button onclick="copyTeiki()">コピーする</button>
-        <button onclick="closePopup()">閉じる</button>
+        <button id="copyTeikiBtn">コピーする</button>
+        <button id="closeTeikiBtn">閉じる</button>
       </div>
     `;
-    document.getElementById("popupOverlay").style.display = "flex";
-  };
+    popupOverlay.style.display = "flex";
 
-  window.copyTeiki = function () {
-    const text = document.getElementById("teikiOutput").innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert("コピーしました！");
+    document.getElementById("copyTeikiBtn").addEventListener("click", () => {
+      const text = document.getElementById("teikiOutput").innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("コピーしました！");
+      });
     });
-  };
+
+    document.getElementById("closeTeikiBtn").addEventListener("click", () => {
+      popupOverlay.style.display = "none";
+    });
+  });
 
   function randomId() {
     return Math.random().toString(36).substring(2, 10);
   }
 
-  document.getElementById("shareBtn").onclick = async () => {
+  document.getElementById("shareBtn").addEventListener("click", async () => {
     const shareId = randomId();
     const data = {
       items,
       teikiText,
       goal: Number(document.getElementById("goal").textContent)
     };
-    await set(ref(db, `share/${shareId}`), data);
+    await db.ref(`share/${shareId}`).set(data);
     const url = `${location.origin}${location.pathname}?share=${shareId}`;
     navigator.clipboard.writeText(url).then(() => {
       alert("共有URLをコピーしました！\n\n" + url);
     });
-  };
+  });
 
   (async function loadShared() {
     const shareId = params.get("share");
     if (!shareId) return;
-    const snapshot = await get(ref(db, `share/${shareId}`));
+    const snapshot = await db.ref(`share/${shareId}`).get();
     const shared = snapshot.val();
     if (!shared) return;
 
@@ -453,19 +472,19 @@
     teikiText = shared.teikiText || "";
     const goalValue = shared.goal || 0;
 
-    await set(ref(db, path("items")), items);
-    await set(ref(db, path("teiki")), teikiText);
-    await set(ref(db, path("goal")), goalValue);
+    await db.ref(path("items")).set(items);
+    await db.ref(path("teiki")).set(teikiText);
+    await db.ref(path("goal")).set(goalValue);
   })();
 
-  onValue(ref(db, path("goal")), (snapshot) => {
+  db.ref(path("goal")).on("value", (snapshot) => {
     const goal = snapshot.val();
     if (goal !== null) {
       document.getElementById("goal").textContent = goal;
     }
   });
 
-  onValue(ref(db, path("items")), (snapshot) => {
+  db.ref(path("items")).on("value", (snapshot) => {
     const data = snapshot.val();
     items = data || [];
     render();
