@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>入室耐久計測ツール</title>
+<title>入室耐久ツール（同期のみ）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -60,7 +60,6 @@
     font-size: 20px;
   }
 
-  /* ▼ スマホでも横並びにする（名前が長くても崩れない） */
   @media (max-width: 600px) {
     .item {
       flex-direction: row;
@@ -224,9 +223,8 @@
 </head>
 <body>
 
-<h1>入室耐久計測ツール</h1>
+<h1>入室耐久ツール（同期のみ）</h1>
 
-<!-- ▼ 目標人数設定ポップアップ -->
 <div id="popupOverlay">
   <div id="popup">
     <h2>目標人数を入力</h2>
@@ -252,7 +250,6 @@
 
 <button id="addBtn" class="main-btn">追加する</button>
 
-<!-- ▼ 定期文章入力欄 -->
 <div id="teikiCard">
   <label>定期文章（○○○ の部分に人数が入ります）</label>
   <textarea id="teikiText" placeholder="例：現在○○○人です！目標まで頑張ります！"></textarea>
@@ -280,19 +277,21 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  /* ▼ 入室ID（roomId）取得 */
   const params = new URLSearchParams(location.search);
   const roomId = params.get("room") || "default";
-
-  /* ▼ Firebaseパスを roomId ごとに分離 */
   const path = (key) => `${roomId}/${key}`;
 
   let items = [];
   let teikiText = "";
 
-  /* ▼ 目標人数設定ボタン */
   document.getElementById("setGoalBtn").onclick = () => {
     document.getElementById("popupOverlay").style.display = "flex";
+    document.getElementById("popup").innerHTML = `
+      <h2>目標人数を入力</h2>
+      <input id="goalInput" type="number" placeholder="例：100">
+      <button onclick="setGoal()">決定</button>
+      <button onclick="closePopup()">閉じる</button>
+    `;
   };
 
   window.closePopup = function () {
@@ -300,7 +299,7 @@
   };
 
   window.setGoal = function () {
-    let goal = document.getElementById("goalInput").value;
+    const goal = document.getElementById("goalInput").value;
     set(ref(db, path("goal")), goal);
     closePopup();
   };
@@ -381,7 +380,6 @@
     document.getElementById("newItemStep").value = "";
   };
 
-  /* ▼ 定期文章保存 */
   document.getElementById("saveTeikiBtn").onclick = () => {
     const text = document.getElementById("teikiText").value.trim();
     if (!text) {
@@ -392,14 +390,12 @@
     alert("定期文章を保存しました");
   };
 
-  /* ▼ 定期文章読み込み */
   onValue(ref(db, path("teiki")), (snapshot) => {
     const data = snapshot.val();
     teikiText = data || "";
     document.getElementById("teikiText").value = teikiText;
   });
 
-  /* ▼ 定期文章出力（コピー機能付き） */
   document.getElementById("showTeikiBtn").onclick = () => {
     if (!teikiText) {
       alert("定期文章が保存されていません");
@@ -408,19 +404,16 @@
 
     const total = items.reduce((sum, item) => sum + item.count, 0);
     const goal = Number(document.getElementById("goal").textContent);
-
     const output = teikiText.replace(/○○○/g, `${total}/${goal}`);
 
     document.getElementById("popup").innerHTML = `
       <h2>定期文章</h2>
       <p id="teikiOutput" style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
-
       <div style="display:flex; flex-direction:column; gap:12px;">
         <button onclick="copyTeiki()">コピーする</button>
         <button onclick="closePopup()">閉じる</button>
       </div>
     `;
-
     document.getElementById("popupOverlay").style.display = "flex";
   };
 
@@ -431,34 +424,27 @@
     });
   };
 
-  /* ▼ URL共有機能（短縮版：短いIDのみ） */
   function randomId() {
     return Math.random().toString(36).substring(2, 10);
   }
 
   document.getElementById("shareBtn").onclick = async () => {
     const shareId = randomId();
-
     const data = {
       items,
       teikiText,
       goal: Number(document.getElementById("goal").textContent)
     };
-
     await set(ref(db, `share/${shareId}`), data);
-
     const url = `${location.origin}${location.pathname}?share=${shareId}`;
-
     navigator.clipboard.writeText(url).then(() => {
       alert("共有URLをコピーしました！\n\n" + url);
     });
   };
 
-  /* ▼ 共有URL読み込み */
   (async function loadShared() {
     const shareId = params.get("share");
     if (!shareId) return;
-
     const snapshot = await get(ref(db, `share/${shareId}`));
     const shared = snapshot.val();
     if (!shared) return;
@@ -467,9 +453,24 @@
     teikiText = shared.teikiText || "";
     const goalValue = shared.goal || 0;
 
-    set(ref(db, path("items")), items);
-    set(ref(db, path("teiki")), teikiText);
-    set(ref(db, path("goal")), goalValue);
+    await set(ref(db, path("items")), items);
+    await set(ref(db, path("teiki")), teikiText);
+    await set(ref(db, path("goal")), goalValue);
   })();
 
-  /*
+  onValue(ref(db, path("goal")), (snapshot) => {
+    const goal = snapshot.val();
+    if (goal !== null) {
+      document.getElementById("goal").textContent = goal;
+    }
+  });
+
+  onValue(ref(db, path("items")), (snapshot) => {
+    const data = snapshot.val();
+    items = data || [];
+    render();
+  });
+</script>
+
+</body>
+</html>
