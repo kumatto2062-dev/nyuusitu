@@ -2,494 +2,458 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>入室耐久ツール（同期のみ）</title>
+<title>入室人数管理ツール</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-  * { box-sizing: border-box; }
-
-  :root {
-    --bg: #f5f6f8;
-    --card: #ffffff;
-    --text: #333;
-    --accent: #3A7AFE;
-    --danger: #FF4D4D;
-    --success: #4CAF50;
-    --shadow: 0 4px 12px rgba(0,0,0,0.08);
-  }
-
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-    background: var(--bg);
-    color: var(--text);
-  }
-
-  h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 30px;
-    font-weight: 700;
-  }
-
-  #totalBox,
-  .item,
-  #inputCard,
-  #teikiCard {
-    background: var(--card);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    width: 100%;
-  }
-
-  #totalBox {
-    text-align: center;
-    font-size: 28px;
-    font-weight: bold;
-  }
-
-  .item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    font-size: 20px;
-  }
-
-  @media (max-width: 600px) {
-    .item {
-      flex-direction: row;
-      font-size: 20px;
-    }
-    .item-name {
-      max-width: 120px;
-      word-break: break-word;
-      font-size: 20px;
-    }
-  }
-
-  .icon-btn {
-    width: 65px;
-    height: 65px;
-    border-radius: 16px;
-    border: none;
-    font-size: 32px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow);
-  }
-
-  .minus { background: var(--danger); color: white; }
-  .plus { background: var(--success); color: white; }
-
-  .item-name {
-    flex: 1;
-    font-weight: 600;
-    font-size: 24px;
-    text-align: center;
-    word-break: break-word;
-  }
-
-  .item-step-input input {
-    width: 100%;
-    font-size: 22px;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid #ccc;
-    background: #f9f9f9;
-    text-align: center;
-  }
-
-  .delete {
-    background: #b0b0b0;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 14px;
-    border: none;
-    font-size: 20px;
-    box-shadow: var(--shadow);
-  }
-
-  .order-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .order-btn {
-    background: var(--accent);
-    color: white;
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 20px;
-    border: none;
-    box-shadow: var(--shadow);
-  }
-
-  #inputCard label,
-  #teikiCard label {
-    font-size: 22px;
-    font-weight: 600;
-    display: block;
-    margin-bottom: 12px;
-  }
-
-  #inputCard input {
-    width: 100%;
-    font-size: 22px;
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid #ccc;
-    background: #f9f9f9;
-    text-align: center;
-    margin-bottom: 12px;
-  }
-
-  #teikiCard textarea {
-    width: 100%;
-    height: 140px;
-    font-size: 20px;
-    padding: 14px;
-    border-radius: 14px;
-    border: 1px solid #ccc;
-    background: #f9f9f9;
-    margin-bottom: 12px;
-  }
-
-  button.main-btn {
-    background: var(--accent);
-    color: white;
-    width: 100%;
-    padding: 20px;
-    font-size: 26px;
-    border-radius: 16px;
-    margin-top: 10px;
-    border: none;
-    box-shadow: var(--shadow);
-  }
-
-  #popupOverlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.45);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 150;
-  }
-
-  #popup {
-    background: var(--card);
-    padding: 30px;
-    border-radius: 22px;
-    width: calc(100% - 40px);
-    max-width: 360px;
-    box-shadow: var(--shadow);
-    text-align: center;
-  }
-
-  #popup input {
-    width: 100%;
-    font-size: 22px;
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid #ccc;
-    background: #f9f9f9;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  #popup button {
-    background: var(--accent);
-    color: white;
-    padding: 14px 20px;
-    font-size: 22px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    box-shadow: var(--shadow);
-    margin-top: 10px;
-  }
+*{box-sizing:border-box}
+:root{
+  --bg:#f5f6f8;--card:#fff;--text:#333;--accent:#3A7AFE;
+  --danger:#FF4D4D;--success:#4CAF50;--gray:#777;
+  --shadow:0 4px 12px rgba(0,0,0,.08)
+}
+body{font-family:Segoe UI,sans-serif;max-width:900px;margin:auto;padding:20px;background:var(--bg);color:var(--text)}
+h1{text-align:center;margin:0 0 20px;font-size:30px}
+.card,#totalBox{background:var(--card);border-radius:20px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow)}
+#totalBox{text-align:center;font-size:28px;font-weight:bold}
+.item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.icon-btn{width:58px;height:58px;border-radius:14px;border:none;font-size:30px;font-weight:bold;cursor:pointer;color:#fff;flex:none}
+.minus{background:var(--danger)}.plus{background:var(--success)}
+.item-name{flex:1;font-weight:600;font-size:22px;text-align:center;word-break:break-word}
+.count{min-width:90px;text-align:center;font-size:24px;font-weight:bold}
+.item-step-input{width:100px}.item-step-input input,
+input,textarea{width:100%;font-size:20px;padding:12px;border-radius:14px;border:1px solid #ccc;background:#f9f9f9}
+.delete,.order-btn{border:none;border-radius:12px;cursor:pointer;color:#fff}
+.delete{background:#999;padding:11px 14px;font-size:16px}
+.order-buttons{display:flex;flex-direction:column;gap:5px}.order-btn{background:var(--accent);padding:8px 12px;font-size:18px}
+label{font-size:21px;font-weight:600;display:block;margin-bottom:10px}
+.main-btn{background:var(--accent);color:#fff;width:100%;padding:18px;font-size:23px;border-radius:16px;margin-top:10px;border:none;box-shadow:var(--shadow);cursor:pointer}
+.main-btn:active,.icon-btn:active,.delete:active,.order-btn:active{transform:scale(.98)}
+textarea{height:140px;resize:vertical}
+#status{text-align:center;font-size:14px;color:var(--gray);margin:8px 0 18px}
+#popupOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+#popup{background:#fff;padding:26px;border-radius:22px;width:100%;max-width:480px;box-shadow:var(--shadow);text-align:center;max-height:90vh;overflow:auto}
+#popup button{background:var(--accent);color:#fff;padding:13px 18px;font-size:20px;border-radius:14px;border:none;cursor:pointer;width:100%;margin-top:10px}
+#popup .secondary{background:#777}
+.output-box{white-space:pre-wrap;text-align:left;background:#f5f6f8;padding:16px;border-radius:12px;font-size:18px;line-height:1.7}
+@media(max-width:600px){
+  body{padding:12px}h1{font-size:25px}
+  .item{gap:6px;padding:10px}.icon-btn{width:48px;height:48px;font-size:25px}
+  .item-name{font-size:18px}.count{min-width:55px;font-size:20px}
+  .item-step-input{width:70px}.item-step-input input{font-size:17px;padding:9px}
+  .delete{padding:9px 7px;font-size:14px}.order-btn{padding:6px 8px;font-size:16px}
+}
 </style>
 </head>
 <body>
 
-<h1>入室耐久ツール（同期のみ）</h1>
-
-<div id="popupOverlay">
-  <div id="popup">
-    <h2>目標人数を入力</h2>
-    <input id="goalInput" type="number" placeholder="例：100">
-    <button id="goalSetBtn">決定</button>
-    <button id="goalCloseBtn">閉じる</button>
-  </div>
-</div>
+<h1>入室人数管理ツール</h1>
+<div id="status">接続中…</div>
 
 <div id="totalBox">
-  合計人数：<span id="total">0</span> / <span id="goal">0</span>
+  現在人数：<span id="total">0</span> / <span id="goal">0</span>人
 </div>
 
 <button id="setGoalBtn" class="main-btn">目標人数を設定する</button>
 
 <div id="items"></div>
 
-<div id="inputCard">
-  <label>新しい項目を追加</label>
+<div class="card">
+  <label for="newItemName">新しい項目を追加</label>
   <input id="newItemName" placeholder="項目名（例：受付A）">
-  <input id="newItemStep" type="number" placeholder="増減人数（例：3）">
+  <input id="newItemStep" type="number" min="1" value="1" placeholder="1回の増減人数" style="margin-top:10px">
+  <button id="addBtn" class="main-btn">項目を追加する</button>
 </div>
 
-<button id="addBtn" class="main-btn">追加する</button>
-
-<div id="teikiCard">
-  <label>定期文章（○○○ の部分に人数が入ります）</label>
-  <textarea id="teikiText" placeholder="例：現在○○○人です！目標まで頑張ります！"></textarea>
-
-  <button id="saveTeikiBtn" class="main-btn">定期入力</button>
-  <button id="showTeikiBtn" class="main-btn">定期出力</button>
+<div class="card">
+  <label for="teikiText">定期文章</label>
+  <div style="font-size:14px;color:#666;margin-bottom:8px">
+    ○○○ → 現在人数、△△△ → 目標人数、□□□ → 現在人数/目標人数
+  </div>
+  <textarea id="teikiText" placeholder="例：現在○○○人です！目標△△△人まで頑張ります！"></textarea>
+  <button id="saveTeikiBtn" class="main-btn">定期文章を保存</button>
+  <button id="showTeikiBtn" class="main-btn">現在状況を出力</button>
   <button id="shareBtn" class="main-btn">共有URLを作成</button>
+</div>
+
+<div id="popupOverlay">
+  <div id="popup"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCY6r1ZzM9fz9k0QFROcLghAaBWPlxFXJs",
-    authDomain: "nyuusitu.firebaseapp.com",
-    projectId: "nyuusitu",
-    storageBucket: "nyuusitu.firebasestorage.app",
-    messagingSenderId: "52996193895",
-    appId: "1:52996193895:web:637df16d38513bd77b9ec2",
-    measurementId: "G-JGLQ6MGVMD",
-    databaseURL: "https://nyuusitu-default-rtdb.firebaseio.com/"
-  };
+"use strict";
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+const firebaseConfig = {
+  apiKey:"AIzaSyCYr6Z1zM9fz9k0QFROcLghAaBWPlxFXJs",
+  authDomain:"nyuusitu.firebaseapp.com",
+  projectId:"nyuusitu",
+  storageBucket:"nyuusitu.firebasestorage.app",
+  messagingSenderId:"52996193895",
+  appId:"1:52996193895:web:637df16d38513bd77b9ec2",
+  measurementId:"G-JGLQ6MGVMD",
+  databaseURL:"https://nyuusitu-default-rtdb.firebaseio.com/"
+};
 
-  const params = new URLSearchParams(location.search);
-  const roomId = params.get("room") || "default";
-  const path = (key) => `${roomId}/${key}`;
+const params = new URLSearchParams(location.search);
+const roomId = params.get("room") || "default";
+const shareId = params.get("share");
+const path = key => `${roomId}/${key}`;
 
-  let items = [];
-  let teikiText = "";
+let items = [];
+let goal = 0;
+let teikiText = "";
+let db = null;
+let firebaseReady = false;
 
-  const popupOverlay = document.getElementById("popupOverlay");
-  const popup = document.getElementById("popup");
+const $ = id => document.getElementById(id);
+const popupOverlay = $("popupOverlay");
+const popup = $("popup");
 
-  document.getElementById("setGoalBtn").addEventListener("click", () => {
-    popup.innerHTML = `
-      <h2>目標人数を入力</h2>
-      <input id="goalInput" type="number" placeholder="例：100">
-      <button id="goalSetBtn">決定</button>
-      <button id="goalCloseBtn">閉じる</button>
-    `;
-    popupOverlay.style.display = "flex";
+function setStatus(text, error=false){
+  $("status").textContent = text;
+  $("status").style.color = error ? "#d33" : "#777";
+}
 
-    document.getElementById("goalSetBtn").addEventListener("click", () => {
-      const goal = document.getElementById("goalInput").value;
-      db.ref(path("goal")).set(goal);
-      popupOverlay.style.display = "none";
-    });
+function openPopup(html){
+  popup.innerHTML = html;
+  popupOverlay.style.display = "flex";
+}
+function closePopup(){
+  popupOverlay.style.display = "none";
+}
 
-    document.getElementById("goalCloseBtn").addEventListener("click", () => {
-      popupOverlay.style.display = "none";
-    });
-  });
+popupOverlay.addEventListener("click", e => {
+  if(e.target === popupOverlay) closePopup();
+});
 
-  function render() {
-    const container = document.getElementById("items");
-    container.innerHTML = "";
+function totalCount(){
+  return items.reduce((sum,item)=>sum + (Number(item.count)||0),0);
+}
 
-    const total = items.reduce((sum, item) => sum + item.count, 0);
-    document.getElementById("total").textContent = total;
+function updateTotal(){
+  $("total").textContent = totalCount();
+  $("goal").textContent = goal;
+}
 
-    items.forEach((item, index) => {
-      const div = document.createElement("div");
-      div.className = "item";
+function safeText(value){
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
 
-      div.innerHTML = `
-        <button class="icon-btn minus">−</button>
-        <div class="item-name">${item.name}</div>
-        <div class="item-step-input">
-          <input type="number" value="${item.step}">
-        </div>
-        <button class="icon-btn plus">＋</button>
-        <button class="delete">削除</button>
-        <div class="order-buttons">
-          <button class="order-btn">↑</button>
-          <button class="order-btn">↓</button>
-        </div>
-      `;
+function render(){
+  updateTotal();
+  const container = $("items");
+  container.innerHTML = "";
 
-      const minusBtn = div.querySelector(".minus");
-      const plusBtn = div.querySelector(".plus");
-      const stepInput = div.querySelector(".item-step-input input");
-      const deleteBtn = div.querySelector(".delete");
-      const upBtn = div.querySelectorAll(".order-btn")[0];
-      const downBtn = div.querySelectorAll(".order-btn")[1];
+  items.forEach((item,index)=>{
+    item.step = Math.max(1, Number(item.step)||1);
+    item.count = Number(item.count)||0;
 
-      minusBtn.addEventListener("click", () => {
-        items[index].count -= items[index].step;
-        sync();
-      });
-
-      plusBtn.addEventListener("click", () => {
-        items[index].count += items[index].step;
-        sync();
-      });
-
-      stepInput.addEventListener("change", (e) => {
-        items[index].step = Number(e.target.value);
-        sync();
-      });
-
-      deleteBtn.addEventListener("click", () => {
-        items.splice(index, 1);
-        sync();
-      });
-
-      upBtn.addEventListener("click", () => {
-        if (index === 0) return;
-        [items[index - 1], items[index]] = [items[index], items[index - 1]];
-        sync();
-      });
-
-      downBtn.addEventListener("click", () => {
-        if (index === items.length - 1) return;
-        [items[index + 1], items[index]] = [items[index], items[index + 1]];
-        sync();
-      });
-
-      container.appendChild(div);
-    });
-  }
-
-  function sync() {
-    db.ref(path("items")).set(items);
-  }
-
-  document.getElementById("addBtn").addEventListener("click", () => {
-    const name = document.getElementById("newItemName").value.trim();
-    const step = Number(document.getElementById("newItemStep").value);
-
-    if (!name || !step) {
-      alert("項目名と人数を入力してください");
-      return;
-    }
-
-    items.push({ name, step, count: 0 });
-    sync();
-
-    document.getElementById("newItemName").value = "";
-    document.getElementById("newItemStep").value = "";
-  });
-
-  document.getElementById("saveTeikiBtn").addEventListener("click", () => {
-    const text = document.getElementById("teikiText").value.trim();
-    if (!text) {
-      alert("定期文章を入力してください");
-      return;
-    }
-    db.ref(path("teiki")).set(text);
-    alert("定期文章を保存しました");
-  });
-
-  db.ref(path("teiki")).on("value", (snapshot) => {
-    const data = snapshot.val();
-    teikiText = data || "";
-    document.getElementById("teikiText").value = teikiText;
-  });
-
-  document.getElementById("showTeikiBtn").addEventListener("click", () => {
-    if (!teikiText) {
-      alert("定期文章が保存されていません");
-      return;
-    }
-
-    const total = items.reduce((sum, item) => sum + item.count, 0);
-    const goal = Number(document.getElementById("goal").textContent);
-    const output = teikiText.replace(/○○○/g, `${total}/${goal}`);
-
-    popup.innerHTML = `
-      <h2>定期文章</h2>
-      <p id="teikiOutput" style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <button id="copyTeikiBtn">コピーする</button>
-        <button id="closeTeikiBtn">閉じる</button>
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <button class="icon-btn minus" type="button">−</button>
+      <div class="item-name">${safeText(item.name)}</div>
+      <div class="count">${item.count}</div>
+      <div class="item-step-input">
+        <input type="number" min="1" value="${item.step}" aria-label="増減人数">
+      </div>
+      <button class="icon-btn plus" type="button">＋</button>
+      <button class="delete" type="button">削除</button>
+      <div class="order-buttons">
+        <button class="order-btn up" type="button">↑</button>
+        <button class="order-btn down" type="button">↓</button>
       </div>
     `;
-    popupOverlay.style.display = "flex";
 
-    document.getElementById("copyTeikiBtn").addEventListener("click", () => {
-      const text = document.getElementById("teikiOutput").innerText;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("コピーしました！");
-      });
+    div.querySelector(".minus").addEventListener("click",()=>{
+      items[index].count -= items[index].step;
+      render();
+      syncItems();
     });
 
-    document.getElementById("closeTeikiBtn").addEventListener("click", () => {
-      popupOverlay.style.display = "none";
+    div.querySelector(".plus").addEventListener("click",()=>{
+      items[index].count += items[index].step;
+      render();
+      syncItems();
     });
+
+    div.querySelector("input").addEventListener("change",e=>{
+      const value = Number(e.target.value);
+      items[index].step = Math.max(1,value||1);
+      render();
+      syncItems();
+    });
+
+    div.querySelector(".delete").addEventListener("click",()=>{
+      if(!confirm(`「${item.name}」を削除しますか？`)) return;
+      items.splice(index,1);
+      render();
+      syncItems();
+    });
+
+    div.querySelector(".up").addEventListener("click",()=>{
+      if(index===0) return;
+      [items[index-1],items[index]]=[items[index],items[index-1]];
+      render();
+      syncItems();
+    });
+
+    div.querySelector(".down").addEventListener("click",()=>{
+      if(index===items.length-1) return;
+      [items[index+1],items[index]]=[items[index],items[index+1]];
+      render();
+      syncItems();
+    });
+
+    container.appendChild(div);
   });
+}
 
-  function randomId() {
-    return Math.random().toString(36).substring(2, 10);
+async function syncItems(){
+  if(!firebaseReady) return;
+  try{
+    await db.ref(path("items")).set(items);
+    setStatus("保存しました");
+  }catch(err){
+    console.error(err);
+    setStatus("保存に失敗しました。FirebaseのDatabaseルールを確認してください。",true);
+  }
+}
+
+async function setGoal(value){
+  goal = Math.max(0,Number(value)||0);
+  updateTotal();
+  if(!firebaseReady) return;
+  try{
+    await db.ref(path("goal")).set(goal);
+    setStatus("目標人数を保存しました");
+  }catch(err){
+    console.error(err);
+    setStatus("目標人数の保存に失敗しました。FirebaseのDatabaseルールを確認してください。",true);
+  }
+}
+
+$("setGoalBtn").addEventListener("click",()=>{
+  openPopup(`
+    <h2>目標人数を入力</h2>
+    <input id="goalInput" type="number" min="0" value="${goal}" placeholder="例：100">
+    <button id="goalSetBtn" type="button">決定</button>
+    <button id="goalCloseBtn" class="secondary" type="button">閉じる</button>
+  `);
+
+  $("goalSetBtn").addEventListener("click",async()=>{
+    await setGoal($("goalInput").value);
+    closePopup();
+  });
+  $("goalCloseBtn").addEventListener("click",closePopup);
+});
+
+$("addBtn").addEventListener("click",()=>{
+  const name=$("newItemName").value.trim();
+  const step=Math.max(1,Number($("newItemStep").value)||1);
+
+  if(!name){
+    alert("項目名を入力してください");
+    $("newItemName").focus();
+    return;
   }
 
-  document.getElementById("shareBtn").addEventListener("click", async () => {
-    const shareId = randomId();
-    const data = {
-      items,
-      teikiText,
-      goal: Number(document.getElementById("goal").textContent)
-    };
-    await db.ref(`share/${shareId}`).set(data);
-    const url = `${location.origin}${location.pathname}?share=${shareId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      alert("共有URLをコピーしました！\n\n" + url);
-    });
-  });
+  items.push({name,step,count:0});
+  render();
+  syncItems();
+  $("newItemName").value="";
+  $("newItemStep").value="1";
+});
 
-  (async function loadShared() {
-    const shareId = params.get("share");
-    if (!shareId) return;
-    const snapshot = await db.ref(`share/${shareId}`).get();
-    const shared = snapshot.val();
-    if (!shared) return;
+$("saveTeikiBtn").addEventListener("click",async()=>{
+  const text=$("teikiText").value.trim();
+  if(!text){
+    alert("定期文章を入力してください");
+    $("teikiText").focus();
+    return;
+  }
+  teikiText=text;
 
-    items = shared.items || [];
-    teikiText = shared.teikiText || "";
-    const goalValue = shared.goal || 0;
+  if(firebaseReady){
+    try{
+      await db.ref(path("teiki")).set(teikiText);
+      setStatus("定期文章を保存しました");
+      alert("定期文章を保存しました");
+    }catch(err){
+      console.error(err);
+      setStatus("定期文章の保存に失敗しました。",true);
+      alert("保存に失敗しました。FirebaseのDatabaseルールを確認してください。");
+    }
+  }else{
+    alert("定期文章を設定しました");
+  }
+});
 
-    await db.ref(path("items")).set(items);
-    await db.ref(path("teiki")).set(teikiText);
-    await db.ref(path("goal")).set(goalValue);
-  })();
+$("showTeikiBtn").addEventListener("click",()=>{
+  if(!teikiText){
+    alert("定期文章を入力・保存してください");
+    return;
+  }
 
-  db.ref(path("goal")).on("value", (snapshot) => {
-    const goal = snapshot.val();
-    if (goal !== null) {
-      document.getElementById("goal").textContent = goal;
+  const total=totalCount();
+  const output=teikiText
+    .replace(/○○○/g,String(total))
+    .replace(/△△△/g,String(goal))
+    .replace(/□□□/g,`${total}/${goal}`);
+
+  const detail=items.length
+    ? "\\n\\n【項目別】\\n"+items.map(i=>`${i.name}：${i.count}人`).join("\\n")
+    : "";
+
+  const fullOutput=output+detail;
+
+  openPopup(`
+    <h2>現在状況</h2>
+    <div id="teikiOutput" class="output-box">${safeText(fullOutput)}</div>
+    <button id="copyTeikiBtn" type="button">コピーする</button>
+    <button id="closeTeikiBtn" class="secondary" type="button">閉じる</button>
+  `);
+
+  $("copyTeikiBtn").addEventListener("click",async()=>{
+    try{
+      await navigator.clipboard.writeText(fullOutput);
+      alert("コピーしました！");
+    }catch(err){
+      // HTTP環境などでclipboard APIが使えない場合の代替
+      const ta=document.createElement("textarea");
+      ta.value=fullOutput;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      alert("コピーしました！");
     }
   });
+  $("closeTeikiBtn").addEventListener("click",closePopup);
+});
 
-  db.ref(path("items")).on("value", (snapshot) => {
-    const data = snapshot.val();
-    items = data || [];
+function randomId(){
+  return Math.random().toString(36).substring(2,10)+Date.now().toString(36);
+}
+
+$("shareBtn").addEventListener("click",async()=>{
+  if(!firebaseReady){
+    alert("Firebaseに接続できていないため共有URLを作成できません。");
+    return;
+  }
+
+  const shareKey=randomId();
+  const data={
+    items:items.map(i=>({name:i.name,step:i.step,count:i.count})),
+    teikiText,
+    goal
+  };
+
+  try{
+    await db.ref(`share/${shareKey}`).set(data);
+    const url=`${location.origin}${location.pathname}?share=${shareKey}`;
+    try{
+      await navigator.clipboard.writeText(url);
+    }catch(e){}
+    openPopup(`
+      <h2>共有URLを作成しました</h2>
+      <div class="output-box">${safeText(url)}</div>
+      <button id="copyUrlBtn" type="button">URLをコピー</button>
+      <button id="closeShareBtn" class="secondary" type="button">閉じる</button>
+    `);
+    $("copyUrlBtn").addEventListener("click",async()=>{
+      try{
+        await navigator.clipboard.writeText(url);
+        alert("URLをコピーしました！");
+      }catch(e){
+        alert(url);
+      }
+    });
+    $("closeShareBtn").addEventListener("click",closePopup);
+  }catch(err){
+    console.error(err);
+    alert("共有URLの作成に失敗しました。FirebaseのDatabaseルールを確認してください。");
+  }
+});
+
+async function loadShared(){
+  if(!shareId || !firebaseReady) return;
+  try{
+    const snapshot=await db.ref(`share/${shareId}`).get();
+    const shared=snapshot.val();
+    if(!shared) return;
+
+    items=Array.isArray(shared.items) ? shared.items : [];
+    teikiText=shared.teikiText || "";
+    goal=Number(shared.goal)||0;
+
     render();
-  });
-</script>
+    $("teikiText").value=teikiText;
 
+    // 共有データを現在のroomにも反映
+    await db.ref(path("items")).set(items);
+    await db.ref(path("teiki")).set(teikiText);
+    await db.ref(path("goal")).set(goal);
+  }catch(err){
+    console.error(err);
+    setStatus("共有データの読み込みに失敗しました。",true);
+  }
+}
+
+function startFirebase(){
+  try{
+    if(!window.firebase){
+      setStatus("Firebase SDKを読み込めませんでした。",true);
+      render();
+      return;
+    }
+
+    firebase.initializeApp(firebaseConfig);
+    db=firebase.database();
+    firebaseReady=true;
+    setStatus("オンライン接続中");
+
+    db.ref(path("goal")).on("value",snapshot=>{
+      const value=snapshot.val();
+      if(value!==null){
+        goal=Number(value)||0;
+        updateTotal();
+      }
+    },err=>{
+      console.error(err);
+      setStatus("Firebaseの読み込み権限がありません。",true);
+    });
+
+    db.ref(path("items")).on("value",snapshot=>{
+      const data=snapshot.val();
+      items=Array.isArray(data) ? data : [];
+      render();
+    },err=>{
+      console.error(err);
+      setStatus("項目データの読み込み権限がありません。",true);
+    });
+
+    db.ref(path("teiki")).on("value",snapshot=>{
+      teikiText=snapshot.val() || "";
+      $("teikiText").value=teikiText;
+    },err=>{
+      console.error(err);
+    });
+
+    loadShared();
+  }catch(err){
+    console.error(err);
+    setStatus("Firebase接続エラー。基本操作は画面上で利用できます。",true);
+    render();
+  }
+}
+
+render();
+startFirebase();
+</script>
 </body>
 </html>
