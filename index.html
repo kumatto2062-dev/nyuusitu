@@ -60,9 +60,10 @@
     font-size: 20px;
   }
 
+  /* ▼ スマホでも横並びにする */
   @media (max-width: 600px) {
     .item {
-      flex-direction: column;
+      flex-direction: row;
       text-align: center;
       font-size: 22px;
     }
@@ -212,6 +213,7 @@
     cursor: pointer;
     width: 100%;
     box-shadow: var(--shadow);
+    margin-top: 10px;
   }
 </style>
 </head>
@@ -225,6 +227,7 @@
     <h2>目標人数を入力</h2>
     <input id="goalInput" type="number" placeholder="例：100">
     <button onclick="setGoal()">決定</button>
+    <button onclick="closePopup()">閉じる</button>
   </div>
 </div>
 
@@ -287,10 +290,14 @@
     document.getElementById("popupOverlay").style.display = "flex";
   };
 
+  window.closePopup = function () {
+    document.getElementById("popupOverlay").style.display = "none";
+  };
+
   window.setGoal = function () {
     let goal = document.getElementById("goalInput").value;
     set(ref(db, path("goal")), goal);
-    document.getElementById("popupOverlay").style.display = "none";
+    closePopup();
   };
 
   function render() {
@@ -402,8 +409,11 @@
     document.getElementById("popup").innerHTML = `
       <h2>定期文章</h2>
       <p id="teikiOutput" style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
-      <button onclick="copyTeiki()">コピーする</button>
-      <button onclick="closePopup()">閉じる</button>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button onclick="copyTeiki()">コピーする</button>
+        <button onclick="closePopup()">閉じる</button>
+      </div>
     `;
 
     document.getElementById("popupOverlay").style.display = "flex";
@@ -414,10 +424,6 @@
     navigator.clipboard.writeText(text).then(() => {
       alert("コピーしました！");
     });
-  };
-
-  window.closePopup = function () {
-    document.getElementById("popupOverlay").style.display = "none";
   };
 
   /* ▼ URL共有機能（短縮版） */
