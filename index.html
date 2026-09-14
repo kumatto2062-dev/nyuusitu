@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>入室耐久ツール</title>
+<title>入室耐久ツール（同期のみ）</title>
 <style>
   * { box-sizing: border-box; }
 
@@ -60,7 +60,8 @@
 
   #totalBox,
   .item,
-  #inputCard {
+  #inputCard,
+  #teikiCard {
     background: var(--card);
     border-radius: 20px;
     padding: 22px;
@@ -152,7 +153,8 @@
     box-shadow: var(--shadow);
   }
 
-  #inputCard label {
+  #inputCard label,
+  #teikiCard label {
     font-size: 20px;
     font-weight: 600;
     display: block;
@@ -170,7 +172,20 @@
     margin-bottom: 12px;
   }
 
-  #addBtn {
+  #teikiCard textarea {
+    width: 100%;
+    height: 120px;
+    font-size: 18px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    margin-bottom: 12px;
+  }
+
+  #addBtn,
+  #saveTeikiBtn,
+  #showTeikiBtn {
     background: var(--accent);
     color: white;
     width: 100%;
@@ -179,50 +194,6 @@
     border-radius: 16px;
     margin-top: 10px;
     border: none;
-    box-shadow: var(--shadow);
-  }
-
-  #roomOverlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 300;
-  }
-
-  #roomPopup {
-    background: var(--card);
-    padding: 30px;
-    border-radius: 22px;
-    width: calc(100% - 40px);
-    max-width: 340px;
-    box-shadow: var(--shadow);
-    text-align: center;
-  }
-
-  #roomPopup input {
-    width: 100%;
-    font-size: 20px;
-    padding: 12px;
-    border-radius: 16px;
-    border: 1px solid #ccc;
-    background: #f9f9f9;
-    text-align: center;
-    margin-bottom: 12px;
-  }
-
-  #roomPopup button {
-    background: var(--accent);
-    color: white;
-    padding: 12px 18px;
-    font-size: 20px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    width: 100%;
     box-shadow: var(--shadow);
   }
 
@@ -275,19 +246,8 @@
 
 <button id="modeToggle">🌙 ダーク</button>
 
-<h1>入室耐久ツール</h1>
+<h1>入室耐久ツール（同期のみ）</h1>
 
-<!-- 部屋ID＋パスワード -->
-<div id="roomOverlay">
-  <div id="roomPopup">
-    <h2>部屋に入る</h2>
-    <input id="roomIdInput" placeholder="部屋ID（例：eventA）">
-    <input id="roomPwInput" type="password" placeholder="パスワード">
-    <button onclick="enterRoom()">入室する</button>
-  </div>
-</div>
-
-<!-- 目標人数 -->
 <div id="popupOverlay">
   <div id="popup">
     <h2>目標人数を入力</h2>
@@ -310,6 +270,15 @@
 
 <button id="addBtn">追加する</button>
 
+<!-- ▼ 定期文章入力欄 -->
+<div id="teikiCard">
+  <label>定期文章（○○○ の部分に人数が入ります）</label>
+  <textarea id="teikiText" placeholder="例：現在○○○人です！目標まで頑張ります！"></textarea>
+
+  <button id="saveTeikiBtn">定期入力</button>
+  <button id="showTeikiBtn">定期出力</button>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -329,61 +298,15 @@
   const db = getDatabase(app);
 
   let items = [];
-  let roomId = null;
+  let teikiText = "";
 
-  /* 🔥 入室処理 */
-  window.enterRoom = async function () {
-    const id = document.getElementById("roomIdInput").value.trim();
-    const pw = document.getElementById("roomPwInput").value.trim();
-
-    if (!id || !pw) {
-      alert("部屋IDとパスワードを入力してください");
-      return;
-    }
-
-    const pwRef = ref(db, `rooms/${id}/password`);
-    const snapshot = await get(pwRef);
-    const realPw = snapshot.val();
-
-    if (!realPw) {
-      await set(pwRef, pw);
-      roomId = id;
-      document.getElementById("roomOverlay").style.display = "none";
-      checkGoal();
-      startRoomSync();
-      return;
-    }
-
-    if (realPw === pw) {
-      roomId = id;
-      document.getElementById("roomOverlay").style.display = "none";
-      checkGoal();
-      startRoomSync();
-    } else {
-      alert("パスワードが違います");
-    }
+  window.onload = () => {
+    document.getElementById("popupOverlay").style.display = "flex";
   };
 
-  /* 🔥 目標人数が未設定ならポップアップ表示 */
-  async function checkGoal() {
-    const goalSnap = await get(ref(db, `rooms/${roomId}/goal`));
-    const goal = goalSnap.val();
-
-    if (goal === null || goal === undefined) {
-      document.getElementById("popupOverlay").style.display = "flex";
-    } else {
-      document.getElementById("goal").textContent = goal;
-    }
-  }
-
   window.setGoal = function () {
-    let goal = document.getElementById("goalInput").value.trim();
-    if (!goal) {
-      alert("目標人数を入力してください");
-      return;
-    }
-    set(ref(db, `rooms/${roomId}/goal`), goal);
-    document.getElementById("goal").textContent = goal;
+    let goal = document.getElementById("goalInput").value;
+    set(ref(db, "goal"), goal);
     document.getElementById("popupOverlay").style.display = "none";
   };
 
@@ -417,7 +340,7 @@
   }
 
   function sync() {
-    set(ref(db, `rooms/${roomId}/items`), items);
+    set(ref(db, "items"), items);
   }
 
   window.change = (index, diff) => {
@@ -463,20 +386,62 @@
     document.getElementById("newItemStep").value = "";
   };
 
-  function startRoomSync() {
-    onValue(ref(db, `rooms/${roomId}/goal`), (snapshot) => {
-      const goal = snapshot.val();
-      if (goal !== null) {
-        document.getElementById("goal").textContent = goal;
-      }
-    });
+  /* ▼ 定期文章保存 */
+  document.getElementById("saveTeikiBtn").onclick = () => {
+    const text = document.getElementById("teikiText").value.trim();
+    if (!text) {
+      alert("定期文章を入力してください");
+      return;
+    }
+    set(ref(db, "teiki"), text);
+    alert("定期文章を保存しました");
+  };
 
-    onValue(ref(db, `rooms/${roomId}/items`), (snapshot) => {
-      const data = snapshot.val();
-      items = data || [];
-      render();
-    });
-  }
+  /* ▼ 定期文章読み込み */
+  onValue(ref(db, "teiki"), (snapshot) => {
+    const data = snapshot.val();
+    teikiText = data || "";
+    document.getElementById("teikiText").value = teikiText;
+  });
+
+  /* ▼ 定期文章出力 */
+  document.getElementById("showTeikiBtn").onclick = () => {
+    if (!teikiText) {
+      alert("定期文章が保存されていません");
+      return;
+    }
+
+    const total = items.reduce((sum, item) => sum + item.count, 0);
+    const goal = Number(document.getElementById("goal").textContent);
+
+    const output = teikiText.replace(/○○○/g, `${total}/${goal}`);
+
+    document.getElementById("popup").innerHTML = `
+      <h2>定期文章</h2>
+      <p style="font-size:20px; white-space:pre-wrap; margin:20px 0;">${output}</p>
+      <button onclick="closePopup()">閉じる</button>
+    `;
+
+    document.getElementById("popupOverlay").style.display = "flex";
+  };
+
+  window.closePopup = function () {
+    document.getElementById("popupOverlay").style.display = "none";
+  };
+
+  /* ▼ Firebase同期 */
+  onValue(ref(db, "goal"), (snapshot) => {
+    const goal = snapshot.val();
+    if (goal !== null) {
+      document.getElementById("goal").textContent = goal;
+    }
+  });
+
+  onValue(ref(db, "items"), (snapshot) => {
+    const data = snapshot.val();
+    items = data || [];
+    render();
+  });
 </script>
 
 </body>
