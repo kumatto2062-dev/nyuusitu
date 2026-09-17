@@ -211,6 +211,7 @@ function loadLocal(key, fallback){
 }
 
 let items = loadLocal("items", []);
+let counts = loadLocal("counts", {});
 let goal = Number(loadLocal("goal", 0)) || 0;
 let teikiText = loadLocal("teiki", "");
 let db = null;
@@ -323,7 +324,14 @@ function render(){
 }
 
 async function syncItems(){
+  // 項目本体とは別に人数だけのバックアップも保存して、
+  // Firebase/ブラウザの再読み込み時に人数が0へ戻るのを防ぐ。
+  items.forEach((item, index)=>{
+    if(!item.id) item.id = randomId();
+    counts[item.id] = Number(item.count)||0;
+  });
   saveLocal("items", items);
+  saveLocal("counts", counts);
   if(!firebaseReady) return;
   try{
     await db.ref(path("items")).set(items);
@@ -373,7 +381,7 @@ $("addBtn").addEventListener("click",()=>{
     return;
   }
 
-  items.push({name,step,count:0});
+  items.push({id:randomId(),name,step,count:0});
   render();
   syncItems();
   $("newItemName").value="";
@@ -555,7 +563,21 @@ function startFirebase(){
       if(data !== null){
         items=Array.isArray(data) ? data : Object.values(data);
         items=items.filter(Boolean);
+        items.forEach(item=>{
+          if(!item.id) item.id = randomId();
+          // Firebaseのcountが0でも、既存の人数バックアップがあればそちらを優先。
+          if(Object.prototype.hasOwnProperty.call(counts,item.id)){
+            item.count = Number(counts[item.id])||0;
+          }else{
+            item.count = Number(item.count)||0;
+            counts[item.id] = item.count;
+          }
+        });
         saveLocal("items", items);
+        saveLocal("counts", counts);
+        // ID付きの最新状態をFirebaseへ戻して正規化
+        db.ref(path("items")).set(items).catch(console.error);
+        db.ref(path("counts")).set(counts).catch(console.error);
       }else{
         // Firebase側が空でも、端末に保存済みの項目を消さない
         items=loadLocal("items", []);
@@ -568,6 +590,23 @@ function startFirebase(){
       render();
       setStatus("Firebaseの読み込み権限がありません。端末保存を使用中です。",true);
     });
+
+    db.ref(path("counts")).on("value",snapshot=>{
+      const data=snapshot.val();
+      if(data && typeof data === "object"){
+        counts=data;
+        let changed=false;
+        items.forEach(item=>{
+          if(item.id && Object.prototype.hasOwnProperty.call(counts,item.id)){
+            const next=Number(counts[item.id])||0;
+            if(item.count !== next){ item.count=next; changed=true; }
+          }
+        });
+        saveLocal("counts", counts);
+        saveLocal("items", items);
+        if(changed) render();
+      }
+    },err=>console.error(err));
 
     db.ref(path("teiki")).on("value",snapshot=>{
       if(snapshot.val() !== null){
