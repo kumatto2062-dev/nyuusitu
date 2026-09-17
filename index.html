@@ -146,9 +146,6 @@ textarea{height:130px;resize:vertical;line-height:1.6}
 
 <h1>入室人数管理ツール</h1>
 <div id="status">接続中…</div>
-<div class="hint" style="text-align:center;margin-top:-14px;margin-bottom:18px;">
-  同じURL（同じ部屋）を開いている端末間で、人数・項目・定期文章が共有されます。
-</div>
 
 <div id="totalBox">
   現在人数：<span id="total">0</span> / <span id="goal">0</span>人
@@ -201,22 +198,10 @@ const params = new URLSearchParams(location.search);
 const roomId = params.get("room") || "default";
 const shareId = params.get("share");
 const path = key => `${roomId}/${key}`;
-const storageKey = key => `nyuusitu_${roomId}_${key}`;
 
-function saveLocal(key, value){
-  try{ localStorage.setItem(storageKey(key), JSON.stringify(value)); }catch(e){ console.warn("localStorage保存失敗",e); }
-}
-function loadLocal(key, fallback){
-  try{
-    const raw = localStorage.getItem(storageKey(key));
-    return raw === null ? fallback : JSON.parse(raw);
-  }catch(e){ return fallback; }
-}
-
-let items = loadLocal("items", []);
-let counts = loadLocal("counts", {});
-let goal = Number(loadLocal("goal", 0)) || 0;
-let teikiText = loadLocal("teiki", "");
+let items = [];
+let goal = 0;
+let teikiText = "";
 let db = null;
 let firebaseReady = false;
 
@@ -256,6 +241,49 @@ function safeText(value){
   }[c]));
 }
 
+function makeItemId(){
+  if(window.crypto && typeof crypto.randomUUID === "function"){
+    return crypto.randomUUID();
+  }
+  return `item_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`;
+}
+
+function normalizeItems(data){
+  if(!data) return [];
+  const list=Array.isArray(data) ? data : Object.values(data);
+  return list.filter(Boolean).map(item=>({
+    id:item.id || makeItemId(),
+    name:String(item.name || "名称未設定"),
+    step:Math.max(1,Number(item.step)||1),
+    count:Number(item.count)||0
+  }));
+}
+
+async function updateItemsTransaction(change,statusText="保存しました"){
+  if(!firebaseReady) return;
+  try{
+    const result=await db.ref(path("items")).transaction(current=>{
+      const currentItems=normalizeItems(current);
+      return change(currentItems);
+    });
+    if(result.committed) setStatus(statusText);
+  }catch(err){
+    console.error(err);
+    setStatus("保存に失敗しました。FirebaseのDatabaseルールを確認してください。",true);
+  }
+}
+
+function changeCount(itemId,direction){
+  setStatus("人数を更新中…");
+  updateItemsTransaction(currentItems=>{
+    const target=currentItems.find(current=>current.id===itemId);
+    if(!target) return currentItems;
+    const step=Math.max(1,Number(target.step)||1);
+    target.count=(Number(target.count)||0)+(direction*step);
+    return currentItems;
+  },"人数を保存しました");
+}
+
 function render(){
   updateTotal();
   const container = $("items");
@@ -282,75 +310,55 @@ function render(){
       </div>
     `;
 
-    div.querySelector(".minus").addEventListener("click",()=>{
-      items[index].count -= items[index].step;
-      render();
-      syncItems();
-    });
+    div.querySelector(".minus").addEventListener("click",()=>changeCount(item.id,-1));
 
-    div.querySelector(".plus").addEventListener("click",()=>{
-      items[index].count += items[index].step;
-      render();
-      syncItems();
-    });
+    div.querySelector(".plus").addEventListener("click",()=>changeCount(item.id,1));
 
     div.querySelector("input").addEventListener("change",e=>{
       const value = Number(e.target.value);
-      items[index].step = Math.max(1,value||1);
-      render();
-      syncItems();
+      const nextStep=Math.max(1,value||1);
+      updateItemsTransaction(currentItems=>{
+        const target=currentItems.find(current=>current.id===item.id);
+        if(target) target.step=nextStep;
+        return currentItems;
+      });
     });
 
     div.querySelector(".delete").addEventListener("click",()=>{
       if(!confirm(`「${item.name}」を削除しますか？`)) return;
-      items.splice(index,1);
-      render();
-      syncItems();
+      updateItemsTransaction(currentItems=>currentItems.filter(current=>current.id!==item.id));
     });
 
     div.querySelector(".up").addEventListener("click",()=>{
       if(index===0) return;
-      [items[index-1],items[index]]=[items[index],items[index-1]];
-      render();
-      syncItems();
+      updateItemsTransaction(currentItems=>{
+        const currentIndex=currentItems.findIndex(current=>current.id===item.id);
+        if(currentIndex>0){
+          [currentItems[currentIndex-1],currentItems[currentIndex]]=
+            [currentItems[currentIndex],currentItems[currentIndex-1]];
+        }
+        return currentItems;
+      });
     });
 
     div.querySelector(".down").addEventListener("click",()=>{
       if(index===items.length-1) return;
-      [items[index+1],items[index]]=[items[index],items[index+1]];
-      render();
-      syncItems();
+      updateItemsTransaction(currentItems=>{
+        const currentIndex=currentItems.findIndex(current=>current.id===item.id);
+        if(currentIndex>=0 && currentIndex<currentItems.length-1){
+          [currentItems[currentIndex+1],currentItems[currentIndex]]=
+            [currentItems[currentIndex],currentItems[currentIndex+1]];
+        }
+        return currentItems;
+      });
     });
 
     container.appendChild(div);
   });
 }
 
-async function syncItems(){
-  // 項目・人数を1つのデータとして保存します。
-  // 複数端末で共有する場合、Firebaseのitemsを唯一の正規データにします。
-  items.forEach(item=>{
-    if(!item.id) item.id = randomId();
-    item.step = Math.max(1, Number(item.step)||1);
-    item.count = Number(item.count)||0;
-  });
-
-  saveLocal("items", items);
-
-  if(!firebaseReady) return;
-
-  try{
-    await db.ref(path("items")).set(items);
-    setStatus("保存しました");
-  }catch(err){
-    console.error(err);
-    setStatus("保存に失敗しました。FirebaseのDatabaseルールを確認してください。",true);
-  }
-}
-
 async function setGoal(value){
   goal = Math.max(0,Number(value)||0);
-  saveLocal("goal", goal);
   updateTotal();
   if(!firebaseReady) return;
   try{
@@ -387,9 +395,10 @@ $("addBtn").addEventListener("click",()=>{
     return;
   }
 
-  items.push({id:randomId(),name,step,count:0});
-  render();
-  syncItems();
+  updateItemsTransaction(currentItems=>{
+    currentItems.push({id:makeItemId(),name,step,count:0});
+    return currentItems;
+  },"項目を追加しました");
   $("newItemName").value="";
   $("newItemStep").value="1";
 });
@@ -402,7 +411,6 @@ $("saveTeikiBtn").addEventListener("click",async()=>{
     return;
   }
   teikiText=text;
-  saveLocal("teiki", teikiText);
 
   if(firebaseReady){
     try{
@@ -473,7 +481,7 @@ $("shareBtn").addEventListener("click",async()=>{
 
   const shareKey=randomId();
   const data={
-    items:items.map(i=>({name:i.name,step:i.step,count:i.count})),
+    items:items.map(i=>({id:i.id,name:i.name,step:i.step,count:i.count})),
     teikiText,
     goal
   };
@@ -512,12 +520,9 @@ async function loadShared(){
     const shared=snapshot.val();
     if(!shared) return;
 
-    items=Array.isArray(shared.items) ? shared.items : [];
+    items=normalizeItems(shared.items);
     teikiText=shared.teikiText || "";
     goal=Number(shared.goal)||0;
-    saveLocal("items", items);
-    saveLocal("teiki", teikiText);
-    saveLocal("goal", goal);
 
     render();
     $("teikiText").value=teikiText;
@@ -549,74 +554,33 @@ function startFirebase(){
       const value=snapshot.val();
       if(value!==null){
         goal=Number(value)||0;
-        saveLocal("goal", goal);
         updateTotal();
-      }else{
-        // Firebase側にまだ保存がない場合は、端末に残っている値を維持してFirebaseへ保存
-        goal=Number(loadLocal("goal", 0))||0;
-        updateTotal();
-        db.ref(path("goal")).set(goal).catch(console.error);
       }
     },err=>{
       console.error(err);
-      goal=Number(loadLocal("goal", 0))||0;
-      updateTotal();
-      setStatus("Firebaseの読み込み権限がありません。端末保存を使用中です。",true);
+      setStatus("Firebaseの読み込み権限がありません。",true);
     });
 
     db.ref(path("items")).on("value",snapshot=>{
       const data=snapshot.val();
+      items=normalizeItems(data);
+      render();
 
-      if(data !== null){
-        const remoteItems = Array.isArray(data) ? data : Object.values(data);
-        items = remoteItems.filter(Boolean).map(item=>({
-          id: item.id || randomId(),
-          name: String(item.name ?? ""),
-          step: Math.max(1, Number(item.step)||1),
-          count: Number(item.count)||0
-        }));
-
-        saveLocal("items", items);
-        render();
-
-        // 古いデータにIDが無かった場合だけ、正規化したデータを保存。
-        const needsNormalization = remoteItems.some(item => !item || !item.id);
-        if(needsNormalization){
-          db.ref(path("items")).set(items).catch(console.error);
-        }
-      }else{
-        // Firebaseにまだ項目が無い場合だけ、端末の保存データを初期データとして使う。
-        const localItems = loadLocal("items", []);
-        if(localItems.length){
-          items = localItems;
-          render();
-          db.ref(path("items")).set(items).catch(console.error);
-        }else{
-          items = [];
-          render();
-        }
+      // 旧形式（IDなし）の項目は一度だけ新形式へ移行する。
+      const rawList=Array.isArray(data) ? data : (data ? Object.values(data) : []);
+      if(rawList.some(item=>item && !item.id)){
+        db.ref(path("items")).transaction(current=>normalizeItems(current)).catch(console.error);
       }
     },err=>{
       console.error(err);
-      items=loadLocal("items", []);
-      render();
-      setStatus("Firebaseの読み込み権限がありません。端末保存を使用中です。",true);
+      setStatus("項目データの読み込み権限がありません。",true);
     });
 
     db.ref(path("teiki")).on("value",snapshot=>{
-      if(snapshot.val() !== null){
-        teikiText=snapshot.val() || "";
-        saveLocal("teiki", teikiText);
-      }else{
-        // Firebase側が空でも、端末に保存済みの定期文章を消さない
-        teikiText=loadLocal("teiki", "");
-        if(teikiText) db.ref(path("teiki")).set(teikiText).catch(console.error);
-      }
+      teikiText=snapshot.val() || "";
       $("teikiText").value=teikiText;
     },err=>{
       console.error(err);
-      teikiText=loadLocal("teiki", "");
-      $("teikiText").value=teikiText;
     });
 
     loadShared();
