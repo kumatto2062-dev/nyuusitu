@@ -146,6 +146,9 @@ textarea{height:130px;resize:vertical;line-height:1.6}
 
 <h1>入室人数管理ツール</h1>
 <div id="status">接続中…</div>
+<div class="hint" style="text-align:center;margin-top:-14px;margin-bottom:18px;">
+  同じURL（同じ部屋）を開いている端末間で、人数・項目・定期文章が共有されます。
+</div>
 
 <div id="totalBox">
   現在人数：<span id="total">0</span> / <span id="goal">0</span>人
@@ -324,15 +327,18 @@ function render(){
 }
 
 async function syncItems(){
-  // 項目本体とは別に人数だけのバックアップも保存して、
-  // Firebase/ブラウザの再読み込み時に人数が0へ戻るのを防ぐ。
-  items.forEach((item, index)=>{
+  // 項目・人数を1つのデータとして保存します。
+  // 複数端末で共有する場合、Firebaseのitemsを唯一の正規データにします。
+  items.forEach(item=>{
     if(!item.id) item.id = randomId();
-    counts[item.id] = Number(item.count)||0;
+    item.step = Math.max(1, Number(item.step)||1);
+    item.count = Number(item.count)||0;
   });
+
   saveLocal("items", items);
-  saveLocal("counts", counts);
+
   if(!firebaseReady) return;
+
   try{
     await db.ref(path("items")).set(items);
     setStatus("保存しました");
@@ -560,53 +566,42 @@ function startFirebase(){
 
     db.ref(path("items")).on("value",snapshot=>{
       const data=snapshot.val();
+
       if(data !== null){
-        items=Array.isArray(data) ? data : Object.values(data);
-        items=items.filter(Boolean);
-        items.forEach(item=>{
-          if(!item.id) item.id = randomId();
-          // Firebaseのcountが0でも、既存の人数バックアップがあればそちらを優先。
-          if(Object.prototype.hasOwnProperty.call(counts,item.id)){
-            item.count = Number(counts[item.id])||0;
-          }else{
-            item.count = Number(item.count)||0;
-            counts[item.id] = item.count;
-          }
-        });
+        const remoteItems = Array.isArray(data) ? data : Object.values(data);
+        items = remoteItems.filter(Boolean).map(item=>({
+          id: item.id || randomId(),
+          name: String(item.name ?? ""),
+          step: Math.max(1, Number(item.step)||1),
+          count: Number(item.count)||0
+        }));
+
         saveLocal("items", items);
-        saveLocal("counts", counts);
-        // ID付きの最新状態をFirebaseへ戻して正規化
-        db.ref(path("items")).set(items).catch(console.error);
-        db.ref(path("counts")).set(counts).catch(console.error);
+        render();
+
+        // 古いデータにIDが無かった場合だけ、正規化したデータを保存。
+        const needsNormalization = remoteItems.some(item => !item || !item.id);
+        if(needsNormalization){
+          db.ref(path("items")).set(items).catch(console.error);
+        }
       }else{
-        // Firebase側が空でも、端末に保存済みの項目を消さない
-        items=loadLocal("items", []);
-        db.ref(path("items")).set(items).catch(console.error);
+        // Firebaseにまだ項目が無い場合だけ、端末の保存データを初期データとして使う。
+        const localItems = loadLocal("items", []);
+        if(localItems.length){
+          items = localItems;
+          render();
+          db.ref(path("items")).set(items).catch(console.error);
+        }else{
+          items = [];
+          render();
+        }
       }
-      render();
     },err=>{
       console.error(err);
       items=loadLocal("items", []);
       render();
       setStatus("Firebaseの読み込み権限がありません。端末保存を使用中です。",true);
     });
-
-    db.ref(path("counts")).on("value",snapshot=>{
-      const data=snapshot.val();
-      if(data && typeof data === "object"){
-        counts=data;
-        let changed=false;
-        items.forEach(item=>{
-          if(item.id && Object.prototype.hasOwnProperty.call(counts,item.id)){
-            const next=Number(counts[item.id])||0;
-            if(item.count !== next){ item.count=next; changed=true; }
-          }
-        });
-        saveLocal("counts", counts);
-        saveLocal("items", items);
-        if(changed) render();
-      }
-    },err=>console.error(err));
 
     db.ref(path("teiki")).on("value",snapshot=>{
       if(snapshot.val() !== null){
