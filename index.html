@@ -198,8 +198,22 @@ const params = new URLSearchParams(location.search);
 const roomId = params.get("room") || "default";
 const shareId = params.get("share");
 const path = key => `${roomId}/${key}`;
+const storageKey = key => `nyuusitu_${roomId}_${key}`;
 
-let items = [];
+function saveLocal(key, value){
+  try{ localStorage.setItem(storageKey(key), JSON.stringify(value)); }catch(e){ console.warn("localStorage保存失敗",e); }
+}
+function loadLocal(key, fallback){
+  try{
+    const raw = localStorage.getItem(storageKey(key));
+    return raw === null ? fallback : JSON.parse(raw);
+  }catch(e){ return fallback; }
+}
+
+let items = loadLocal("items", []);
+let goal = Number(loadLocal("goal", 0)) || 0;
+let teikiText = loadLocal("teiki", "");
+
 let goal = 0;
 let teikiText = "";
 let db = null;
@@ -312,6 +326,7 @@ function render(){
 }
 
 async function syncItems(){
+  saveLocal("items", items);
   if(!firebaseReady) return;
   try{
     await db.ref(path("items")).set(items);
@@ -324,6 +339,7 @@ async function syncItems(){
 
 async function setGoal(value){
   goal = Math.max(0,Number(value)||0);
+  saveLocal("goal", goal);
   updateTotal();
   if(!firebaseReady) return;
   try{
@@ -375,6 +391,7 @@ $("saveTeikiBtn").addEventListener("click",async()=>{
     return;
   }
   teikiText=text;
+  saveLocal("teiki", teikiText);
 
   if(firebaseReady){
     try{
@@ -487,6 +504,9 @@ async function loadShared(){
     items=Array.isArray(shared.items) ? shared.items : [];
     teikiText=shared.teikiText || "";
     goal=Number(shared.goal)||0;
+    saveLocal("items", items);
+    saveLocal("teiki", teikiText);
+    saveLocal("goal", goal);
 
     render();
     $("teikiText").value=teikiText;
@@ -518,27 +538,54 @@ function startFirebase(){
       const value=snapshot.val();
       if(value!==null){
         goal=Number(value)||0;
+        saveLocal("goal", goal);
         updateTotal();
+      }else{
+        // Firebase側にまだ保存がない場合は、端末に残っている値を維持してFirebaseへ保存
+        goal=Number(loadLocal("goal", 0))||0;
+        updateTotal();
+        db.ref(path("goal")).set(goal).catch(console.error);
       }
     },err=>{
       console.error(err);
-      setStatus("Firebaseの読み込み権限がありません。",true);
+      goal=Number(loadLocal("goal", 0))||0;
+      updateTotal();
+      setStatus("Firebaseの読み込み権限がありません。端末保存を使用中です。",true);
     });
 
     db.ref(path("items")).on("value",snapshot=>{
       const data=snapshot.val();
-      items=Array.isArray(data) ? data : [];
+      if(data !== null){
+        items=Array.isArray(data) ? data : Object.values(data);
+        items=items.filter(Boolean);
+        saveLocal("items", items);
+      }else{
+        // Firebase側が空でも、端末に保存済みの項目を消さない
+        items=loadLocal("items", []);
+        db.ref(path("items")).set(items).catch(console.error);
+      }
       render();
     },err=>{
       console.error(err);
-      setStatus("項目データの読み込み権限がありません。",true);
+      items=loadLocal("items", []);
+      render();
+      setStatus("Firebaseの読み込み権限がありません。端末保存を使用中です。",true);
     });
 
     db.ref(path("teiki")).on("value",snapshot=>{
-      teikiText=snapshot.val() || "";
+      if(snapshot.val() !== null){
+        teikiText=snapshot.val() || "";
+        saveLocal("teiki", teikiText);
+      }else{
+        // Firebase側が空でも、端末に保存済みの定期文章を消さない
+        teikiText=loadLocal("teiki", "");
+        if(teikiText) db.ref(path("teiki")).set(teikiText).catch(console.error);
+      }
       $("teikiText").value=teikiText;
     },err=>{
       console.error(err);
+      teikiText=loadLocal("teiki", "");
+      $("teikiText").value=teikiText;
     });
 
     loadShared();
